@@ -1,7 +1,9 @@
 <template>
   <div class="login-container">
     <el-card class="login-card">
-      <h2 class="title">校园二手交易平台</h2>
+      <!-- 动态标题：切换登录/注册 -->
+      <h2 class="title">{{ isLogin ? "校园二手交易平台" : "注册新账号" }}</h2>
+
       <el-form :model="loginForm" label-width="0">
         <el-form-item>
           <el-input
@@ -10,66 +12,88 @@
             size="large"
           />
         </el-form-item>
+
+        <!-- 注册时才显示昵称输入框 -->
+        <el-form-item v-if="!isLogin">
+          <el-input
+            v-model="loginForm.nickname"
+            placeholder="请输入昵称（如：李同学）"
+            size="large"
+          />
+        </el-form-item>
+
         <el-form-item>
           <el-input
             v-model="loginForm.password"
             type="password"
-            placeholder="请输入密码"
+            placeholder="请输入密码（至少6位）"
             size="large"
             show-password
           />
         </el-form-item>
+
         <el-form-item>
           <el-button
             type="primary"
             class="login-btn"
             size="large"
-            @click="handleLogin"
-            >登 录</el-button
+            @click="handleSubmit"
           >
+            {{ isLogin ? "登 录" : "注 册" }}
+          </el-button>
         </el-form-item>
       </el-form>
+
       <div class="footer-links">
-        <span>还没有账号？去注册</span>
+        <!-- 点击切换状态 -->
+        <span @click="isLogin = !isLogin" class="toggle-btn">
+          {{ isLogin ? "还没有账号？去注册" : "已有账号？去登录" }}
+        </span>
       </div>
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { reactive } from "vue";
+import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { loginApi, registerApi } from "../api/goods"; // 引入真实接口
+import { loginApi, registerApi } from "../api/goods"; // 引入真实的接口
 
 const router = useRouter();
-const loginForm = reactive({ username: "", password: "" });
+const isLogin = ref(true); // true表示登录，false表示注册
+const loginForm = reactive({ username: "", password: "", nickname: "" });
 
-// 核心逻辑：真实调用后端登录
-const handleLogin = async () => {
+const handleSubmit = async () => {
   if (!loginForm.username || !loginForm.password) {
     ElMessage.warning("请输入账号和密码");
     return;
   }
 
   try {
-    const res = await loginApi(loginForm);
-
-    // 假设后端返回结构是 { code: 200, message: "操作成功", data: {...User对象} }
-    if (res.data.code === 200) {
-      ElMessage.success("登录成功！");
-
-      // 【关键】把真实的用户信息（包括 ID 和 昵称）存入本地，供其他页面调用
-      localStorage.setItem("user", JSON.stringify(res.data.data));
-
-      router.push("/");
+    if (isLogin.value) {
+      // ========= 登录逻辑 =========
+      const res = await loginApi(loginForm);
+      if (res.data.code === 200) {
+        ElMessage.success("登录成功！");
+        localStorage.setItem("user", JSON.stringify(res.data.data));
+        router.push("/");
+      } else {
+        ElMessage.error(res.data.message || "登录失败");
+      }
     } else {
-      // 如果后端抛出 "学号或密码错误"，显示出来
-      ElMessage.error(res.data.message || "登录失败");
+      // ========= 注册逻辑 =========
+      const res = await registerApi(loginForm);
+      if (res.data.code === 200) {
+        ElMessage.success("注册成功，请直接登录！");
+        isLogin.value = true; // 自动切回登录界面
+      } else {
+        ElMessage.error(res.data.message || "注册失败");
+      }
     }
   } catch (error) {
     console.error(error);
-    ElMessage.error("网络异常，请检查后端服务是否启动");
+    ElMessage.error("网络异常，请检查后端是否启动");
   }
 };
 </script>
@@ -100,6 +124,12 @@ const handleLogin = async () => {
   text-align: center;
   font-size: 14px;
   color: #666;
+}
+.toggle-btn {
   cursor: pointer;
+  color: #3b82f6; /* 蓝色提示可点击 */
+}
+.toggle-btn:hover {
+  text-decoration: underline;
 }
 </style>
