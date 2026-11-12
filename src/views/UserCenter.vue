@@ -46,23 +46,36 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
+import { getGoodsList } from "../api/goods"; // 复用获取列表的接口
+import { ElMessage } from "element-plus";
 
 const activeName = ref("my-publish");
 
-// 假数据用于展示
-const myGoods = ref([
-  { title: "高等数学辅导书", price: 25, status: "已上架" },
-  { title: "闲置蓝牙耳机", price: 50, status: "审核中" },
-]);
-const myOrders = ref([
-  {
-    orderNo: "ORD20231108001",
-    goodsName: "罗技鼠标",
-    amount: 50,
-    status: "待发货",
-  },
-]);
+const myGoods = ref([]);
+const myOrders = ref([]); // 订单功能没做，先留空
+
+onMounted(async () => {
+  // 获取当前登录的用户名
+  const userStr = localStorage.getItem("user");
+  if (!userStr) return;
+  const currentUser = JSON.parse(userStr);
+
+  try {
+    // 请求后端的全部商品列表
+    const res = await getGoodsList();
+
+    // 在前端过滤出：卖家是我 的 商品
+    // 注意：这里假设你数据库里的 seller 字段，存的就是用户的 nickname
+    const allGoods = res.data.data || [];
+    myGoods.value = allGoods.filter(
+      (item) => item.seller === currentUser.nickname,
+    );
+  } catch (error) {
+    ElMessage.error("获取我的发布数据失败");
+    console.error(error);
+  }
+});
 </script>
 
 <style scoped>
