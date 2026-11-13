@@ -118,8 +118,8 @@
 import { ref, reactive } from "vue";
 import { Plus } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
-import { publishGoods } from "../api/goods"; // 引入后端接口
-import { useRouter } from "vue-router"; // 引入路由，用于发布成功后跳转
+import { publishGoods } from "../api/goods"; // 保留这一行即可
+import { useRouter } from "vue-router";
 
 const formRef = ref(null);
 const router = useRouter();
@@ -142,9 +142,6 @@ const rules = {
   condition: [{ required: true, message: "请选择成色", trigger: "change" }],
   location: [{ required: true, message: "请选择自提点", trigger: "change" }],
 };
-
-import { publishGoods } from "../api/goods";
-import { useRouter } from "vue-router";
 
 const submitForm = () => {
   formRef.value.validate(async (valid) => {
@@ -175,9 +172,10 @@ const submitForm = () => {
         location: formData.location,
         description: formData.description,
         status: "待审核",
-        seller: currentUser.nickname, // 【核心】这里换成当前真实登录的昵称
+        sellerId: currentUser.id,
+        seller: currentUser.nickname, // 当前真实登录的昵称
         image:
-          "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=500&q=80", // 图片链接暂留，等下一步做真实上传
+          "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=500&q=80", // 图片链接暂留
       };
 
       await publishGoods(submitData);

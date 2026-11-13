@@ -23,6 +23,7 @@
             :key="item.id"
             class="goods-col"
           >
+            <!-- 这里传的是整个对象 item，不是 item.id -->
             <GoodsCard :goods="item" @click-card="goToDetail" />
           </el-col>
         </el-row>
@@ -30,9 +31,16 @@
         <!-- 如果没数据，显示个空状态 -->
         <el-empty v-if="goodsList.length === 0" description="暂无相关物品" />
 
-        <!-- 分页 -->
+        <!-- 分页：绑定真实的页数和总数 -->
         <div class="pagination-container">
-          <el-pagination background layout="prev, pager, next" :total="100" />
+          <el-pagination
+            background
+            layout="prev, pager, next"
+            :total="total"
+            :page-size="pageSize"
+            :current-page="currentPage"
+            @current-change="handlePageChange"
+          />
         </div>
       </el-main>
     </div>
@@ -42,56 +50,62 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import {
-  Search,
-  Plus,
-  Bell,
-  ShoppingBag,
-  Menu,
-  Reading,
-  Monitor,
-  House,
-  Present,
-  More,
-  Location,
-} from "@element-plus/icons-vue";
-import { getGoodsList } from "../api/goods"; // 引入通信兵
+import { getGoodsList } from "../api/goods";
 
-// 引入前面拆分出来的组件
 import NavBar from "../components/NavBar.vue";
 import SideMenu from "../components/SideMenu.vue";
 import GoodsCard from "../components/GoodsCard.vue";
 
 const router = useRouter();
 const searchKeyword = ref("");
-const goodsList = ref([]); // 这个数组现在是空的，专门用来装后端传过来的数据
+const categoryFilter = ref("");
 
-// 定义一个函数，用来向后端要数据
+// 分页相关变量
+const goodsList = ref([]);
+const total = ref(0);
+const currentPage = ref(1);
+const pageSize = ref(8);
+
 const loadGoods = async () => {
   try {
-    const res = await getGoodsList();
-    // 后端返回的格式是 { code: 200, data: [...] }
-    // axios 会把后端的返回放在 res.data 里
-    // 所以真正的数组在 res.data.data 里
-    goodsList.value = res.data.data;
-    console.log("成功拿到后端数据：", goodsList.value);
+    const res = await getGoodsList({
+      keyword: searchKeyword.value,
+      category: categoryFilter.value,
+      page: currentPage.value,
+      size: pageSize.value,
+    });
+
+    // 【核心修改】后端现在返回的是 PageResult 对象，里面有 list 和 total
+    // 如果你后端 PageResult 里的数组字段名叫 records 而不是 list，请把下面的 .list 改成 .records
+    const pageData = res.data.data;
+    goodsList.value = pageData.list || [];
+    total.value = pageData.total || 0;
+
+    console.log("成功拿到后端分页数据：", pageData);
   } catch (error) {
-    console.error("获取数据失败，后端是不是没开？", error);
+    console.error("获取数据失败：", error);
   }
 };
 
-// 页面一加载，就马上向后台要数据
+const handlePageChange = (newPage) => {
+  currentPage.value = newPage;
+  loadGoods();
+};
+
 onMounted(() => {
   loadGoods();
 });
 
 const handleSearch = (keyword) => {
-  // 以后可以在这里加上搜索参数传给后端
-  console.log("搜索：", keyword);
+  searchKeyword.value = keyword;
+  currentPage.value = 1; // 搜索时回到第一页
+  loadGoods();
 };
 
 const handleCategoryChange = (category) => {
-  console.log("分类：", category);
+  categoryFilter.value = category === "all" ? "" : category;
+  currentPage.value = 1;
+  loadGoods();
 };
 
 const goToDetail = (id) => {
@@ -100,7 +114,6 @@ const goToDetail = (id) => {
 </script>
 
 <style scoped>
-/* 只保留最外层的布局样式，卡片、菜单的样式都在各自的组件里 */
 .campus-platform {
   min-height: 100vh;
   background-color: #f5f7fa;

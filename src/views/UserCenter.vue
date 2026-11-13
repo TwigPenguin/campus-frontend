@@ -47,30 +47,23 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-import { getGoodsList } from "../api/goods"; // 复用获取列表的接口
+import { getMyGoods } from "../api/goods"; // 【重要】改用专属接口
 import { ElMessage } from "element-plus";
 
 const activeName = ref("my-publish");
 
 const myGoods = ref([]);
-const myOrders = ref([]); // 订单功能没做，先留空
+const myOrders = ref([]);
 
 onMounted(async () => {
-  // 获取当前登录的用户名
   const userStr = localStorage.getItem("user");
   if (!userStr) return;
   const currentUser = JSON.parse(userStr);
 
   try {
-    // 请求后端的全部商品列表
-    const res = await getGoodsList();
-
-    // 在前端过滤出：卖家是我 的 商品
-    // 注意：这里假设你数据库里的 seller 字段，存的就是用户的 nickname
-    const allGoods = res.data.data || [];
-    myGoods.value = allGoods.filter(
-      (item) => item.seller === currentUser.nickname,
-    );
+    // 直接传当前用户的 ID 给后端查询
+    const res = await getMyGoods(currentUser.id);
+    myGoods.value = res.data.data || [];
   } catch (error) {
     ElMessage.error("获取我的发布数据失败");
     console.error(error);
