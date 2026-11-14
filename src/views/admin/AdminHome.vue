@@ -18,13 +18,29 @@
           <el-icon><DataLine /></el-icon>
           <span>数据统计</span>
         </el-menu-item>
+        <el-menu-item index="/admin/complaint">
+          <el-icon><Warning /></el-icon>
+          <span>投诉处理</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/pickup-point">
+          <el-icon><Location /></el-icon>
+          <span>自提点管理</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/users">
+          <el-icon><User /></el-icon>
+          <span>用户管理</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/log">
+          <el-icon><Memo /></el-icon>
+          <span>系统日志</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
 
     <!-- 右侧内容 -->
     <el-container>
       <el-header class="admin-header">
-        <span>欢迎您，管理员</span>
+        <span>欢迎您，{{ adminName }}</span>
         <el-button link type="danger" @click="$router.push('/')"
           >返回前台</el-button
         >
@@ -38,7 +54,12 @@
 </template>
 
 <script setup>
-// 这里不需要额外逻辑，主要是布局
+import { computed } from "vue";
+import { getUser } from "../../utils/auth";
+
+const adminName = computed(
+  () => getUser()?.nickname || getUser()?.username || "管理员"
+);
 </script>
 
 <style scoped>

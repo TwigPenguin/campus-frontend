@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { ElMessage } from "element-plus";
+import { getUser } from "../utils/auth";
 
 const routes = [
   {
@@ -42,6 +43,26 @@ const routes = [
         name: "Stats",
         component: () => import("../views/admin/Stats.vue"),
       },
+      {
+        path: "complaint",
+        name: "ComplaintCenter",
+        component: () => import("../views/admin/ComplaintCenter.vue"),
+      },
+      {
+        path: "pickup-point",
+        name: "PickupPointManage",
+        component: () => import("../views/admin/PickupPointManage.vue"),
+      },
+      {
+        path: "log",
+        name: "SysLog",
+        component: () => import("../views/admin/SysLog.vue"),
+      },
+      {
+        path: "users",
+        name: "UserManage",
+        component: () => import("../views/admin/UserManage.vue"),
+      },
     ],
   },
   { path: "/:pathMatch(.*)*", redirect: "/" },
@@ -56,32 +77,24 @@ const router = createRouter({
 });
 
 router.beforeEach((to) => {
-  // 直接从浏览器本地读取用户信息
-  const userStr = localStorage.getItem("user");
-  const user = userStr ? JSON.parse(userStr) : null;
-
-  // 检查当前页面是否配置了需要登录 (meta: { auth: true })
+  const user = getUser();
   const needAuth = to.matched.some((record) => record.meta.auth);
   const needAdmin = to.matched.some((record) => record.meta.admin);
 
-  // 1. 如果需要登录，但本地没存 user，踢去登录页
   if (needAuth && !user) {
     ElMessage.warning("请先登录！");
     return { path: "/login", query: { redirect: to.fullPath } };
   }
 
-  // 2. 如果是管理员页面，但当前用户不是 ADMIN，踢回首页
   if (needAdmin && user?.role !== "ADMIN") {
     ElMessage.warning("没有管理员权限");
     return "/";
   }
 
-  // 3. 如果已经登录了，还想去登录页，直接跳回首页
   if (to.path === "/login" && user) {
     return typeof to.query.redirect === "string" ? to.query.redirect : "/";
   }
 
-  // 4. 其他情况正常放行
   return true;
 });
 

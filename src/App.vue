@@ -1,5 +1,6 @@
 <template>
   <div class="app-root">
+    <NavBar v-if="showNav" />
     <router-view />
   </div>
 </template>

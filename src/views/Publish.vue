@@ -24,9 +24,12 @@
 
         <el-form-item label="物品分类" prop="category">
           <el-select v-model="formData.category" placeholder="请选择分类">
-            <el-option label="书籍教材" value="books" />
-            <el-option label="数码电子" value="digital" />
-            <el-option label="生活用品" value="life" />
+            <el-option
+              v-for="c in categories"
+              :key="c.value"
+              :label="c.label"
+              :value="c.value"
+            />
           </el-select>
         </el-form-item>
 
@@ -51,6 +54,10 @@
           </el-col>
         </el-row>
 
+        <el-form-item label="物品数量" prop="stock">
+          <el-input-number v-model="formData.stock" :min="1" :max="999" />
+        </el-form-item>
+
         <el-form-item label="物品成色" prop="condition">
           <el-radio-group v-model="formData.condition">
             <el-radio label="全新">全新</el-radio>
@@ -61,13 +68,13 @@
         </el-form-item>
 
         <el-form-item label="自提点" prop="location">
-          <el-select
-            v-model="formData.location"
-            placeholder="请选择线下交接自提点"
-          >
-            <el-option label="图书馆服务台" value="lib" />
-            <el-option label="北区宿舍管处" value="north" />
-            <el-option label="南区食堂门口" value="south" />
+          <el-select v-model="formData.location" placeholder="请选择线下交接自提点">
+            <el-option
+              v-for="p in pickupPoints"
+              :key="p.id"
+              :label="p.name"
+              :value="p.name"
+            />
           </el-select>
         </el-form-item>
 
@@ -82,18 +89,20 @@
 
         <el-form-item label="物品图片" prop="images">
           <el-upload
-            action="#"
             list-type="picture-card"
             :auto-upload="false"
             :limit="5"
+            accept="image/*"
+            v-model:file-list="fileList"
+            :on-change="onFileChange"
+            :on-remove="onFileRemove"
+            :on-exceed="onExceed"
           >
             <el-icon><Plus /></el-icon>
-            <template #tip>
-              <div class="el-upload__tip">
-                只能上传jpg/png文件，且不超过5MB，最多5张
-              </div>
-            </template>
           </el-upload>
+          <div class="el-upload__tip">
+            支持 jpg/png/webp/gif，单张不超过 5MB，最多 5 张
+          </div>
         </el-form-item>
 
         <el-form-item>
@@ -106,7 +115,9 @@
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" @click="submitForm">提交审核</el-button>
+          <el-button type="primary" :loading="submitting" @click="submitForm">
+            提交审核
+          </el-button>
           <el-button @click="resetForm">重置</el-button>
         </el-form-item>
       </el-form>
@@ -115,24 +126,30 @@
 </template>
 
 <script setup>
-import { ref, reactive } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { Plus } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
-import { publishGoods } from "../api/goods"; // 保留这一行即可
+import { publishGoods, uploadImage } from "../api/goods";
+import { getPickupPoints } from "../api/pickup";
+import { getUser } from "../utils/auth";
+import { categories } from "../utils/dict";
 import { useRouter } from "vue-router";
 
 const formRef = ref(null);
 const router = useRouter();
+const submitting = ref(false);
+const fileList = ref([]);
+const pickupPoints = ref([]);
 
 const formData = reactive({
   title: "",
   category: "",
   price: null,
   originalPrice: null,
+  stock: 1,
   condition: "",
   location: "",
   description: "",
-  images: [],
 });
 
 const rules = {
@@ -143,57 +160,90 @@ const rules = {
   location: [{ required: true, message: "请选择自提点", trigger: "change" }],
 };
 
+function onFileChange(uploadFile, uploadFiles) {
+  fileList.value = uploadFiles;
+}
+
+function onFileRemove() {
+  // v-model:file-list 会自动更新
+}
+
+function onExceed() {
+  ElMessage.warning("最多上传 5 张图片");
+}
+
+onMounted(async () => {
+  try {
+    const res = await getPickupPoints();
+    pickupPoints.value = res.data.data || [];
+  } catch {
+    pickupPoints.value = [];
+  }
+});
+
+async function uploadAllImages() {
+  const urls = [];
+  for (const item of fileList.value) {
+    const raw = item.raw;
+    if (!raw) continue;
+    const fd = new FormData();
+    fd.append("file", raw);
+    const res = await uploadImage(fd);
+    urls.push(res.data.data);
+  }
+  return urls;
+}
+
 const submitForm = () => {
   formRef.value.validate(async (valid) => {
     if (!valid) {
       ElMessage.error("请完善必填信息");
       return;
     }
-
-    // 1. 真实环境：先检查用户有没有登录
-    const userStr = localStorage.getItem("user");
-    if (!userStr) {
+    const user = getUser();
+    if (!user) {
       ElMessage.warning("请先登录才能发布物品");
-      router.push("/login");
+      router.push({ path: "/login", query: { redirect: "/publish" } });
       return;
     }
 
-    // 2. 获取真实的用户信息
-    const currentUser = JSON.parse(userStr);
-
+    submitting.value = true;
     try {
-      // 3. 组装真实数据
+      let image = "";
+      if (fileList.value.length > 0) {
+        const urls = await uploadAllImages();
+        image = urls.join(",");
+      }
+
       const submitData = {
         title: formData.title,
         category: formData.category,
         price: formData.price,
         originalPrice: formData.originalPrice,
+        stock: formData.stock || 1,
         condition: formData.condition,
         location: formData.location,
         description: formData.description,
         status: "待审核",
-        sellerId: currentUser.id,
-        seller: currentUser.nickname, // 当前真实登录的昵称
-        image:
-          "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=500&q=80", // 图片链接暂留
+        sellerId: user.id,
+        seller: user.nickname || user.username,
+        image,
       };
 
       await publishGoods(submitData);
-
       ElMessage.success("发布成功，请等待管理员审核！");
-
-      setTimeout(() => {
-        router.push("/");
-      }, 1000);
+      setTimeout(() => router.push("/"), 800);
     } catch (error) {
-      console.error("发布失败：", error);
-      ElMessage.error("发布失败，请检查后端是否启动");
+      ElMessage.error(error?.message || "发布失败，请检查后端是否启动");
+    } finally {
+      submitting.value = false;
     }
   });
 };
 
 const resetForm = () => {
   formRef.value.resetFields();
+  fileList.value = [];
 };
 </script>
 
@@ -208,5 +258,10 @@ const resetForm = () => {
 .card-header {
   font-size: 18px;
   font-weight: bold;
+}
+.el-upload__tip {
+  font-size: 12px;
+  color: #999;
+  margin-top: 6px;
 }
 </style>

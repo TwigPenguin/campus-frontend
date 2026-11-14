@@ -1,21 +1,24 @@
 <template>
   <div class="campus-platform">
-    <!-- 1. 使用顶部导航组件 -->
-    <NavBar @search="handleSearch" />
-
     <div class="main-container">
-      <!-- 2. 使用左侧菜单组件 -->
-      <SideMenu @category-change="handleCategoryChange" />
+      <SideMenu
+        :active-index="categoryFilter === '' ? 'all' : categoryFilter"
+        @category-change="handleCategoryChange"
+      />
 
-      <!-- 右侧商品展示区 -->
       <el-main class="goods-main">
         <div class="sort-bar">
-          <span class="sort-item active">综合排序</span>
-          <span class="sort-item">最新发布</span>
-          <span class="sort-item">价格从低到高</span>
+          <span
+            v-for="item in sortOptions"
+            :key="item.value"
+            class="sort-item"
+            :class="{ active: sort === item.value }"
+            @click="changeSort(item.value)"
+          >
+            {{ item.label }}
+          </span>
         </div>
 
-        <!-- 3. 使用商品卡片组件 -->
         <el-row :gutter="20">
           <el-col
             :span="6"
@@ -23,19 +26,19 @@
             :key="item.id"
             class="goods-col"
           >
-            <!-- 这里传的是整个对象 item，不是 item.id -->
             <GoodsCard :goods="item" @click-card="goToDetail" />
           </el-col>
         </el-row>
 
-        <!-- 如果没数据，显示个空状态 -->
-        <el-empty v-if="goodsList.length === 0" description="暂无相关物品" />
+        <el-empty
+          v-if="!loading && goodsList.length === 0"
+          description="暂无相关物品"
+        />
 
-        <!-- 分页：绑定真实的页数和总数 -->
-        <div class="pagination-container">
+        <div class="pagination-container" v-if="total > pageSize">
           <el-pagination
             background
-            layout="prev, pager, next"
+            layout="prev, pager, next, total"
             :total="total"
             :page-size="pageSize"
             :current-page="currentPage"
@@ -48,57 +51,56 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { ref, watch } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import { getGoodsList } from "../api/goods";
 
-import NavBar from "../components/NavBar.vue";
 import SideMenu from "../components/SideMenu.vue";
 import GoodsCard from "../components/GoodsCard.vue";
 
 const router = useRouter();
+const route = useRoute();
+
 const searchKeyword = ref("");
 const categoryFilter = ref("");
+const sort = ref("default");
 
-// 分页相关变量
+const sortOptions = [
+  { value: "default", label: "综合排序" },
+  { value: "latest", label: "最新发布" },
+  { value: "priceAsc", label: "价格从低到高" },
+  { value: "priceDesc", label: "价格从高到低" },
+];
+
 const goodsList = ref([]);
 const total = ref(0);
 const currentPage = ref(1);
 const pageSize = ref(8);
+const loading = ref(false);
 
 const loadGoods = async () => {
+  loading.value = true;
   try {
     const res = await getGoodsList({
       keyword: searchKeyword.value,
       category: categoryFilter.value,
+      sort: sort.value,
       page: currentPage.value,
       size: pageSize.value,
     });
-
-    // 【核心修改】后端现在返回的是 PageResult 对象，里面有 list 和 total
-    // 如果你后端 PageResult 里的数组字段名叫 records 而不是 list，请把下面的 .list 改成 .records
     const pageData = res.data.data;
     goodsList.value = pageData.list || [];
     total.value = pageData.total || 0;
-
-    console.log("成功拿到后端分页数据：", pageData);
   } catch (error) {
     console.error("获取数据失败：", error);
+    goodsList.value = [];
+  } finally {
+    loading.value = false;
   }
 };
 
 const handlePageChange = (newPage) => {
   currentPage.value = newPage;
-  loadGoods();
-};
-
-onMounted(() => {
-  loadGoods();
-});
-
-const handleSearch = (keyword) => {
-  searchKeyword.value = keyword;
-  currentPage.value = 1; // 搜索时回到第一页
   loadGoods();
 };
 
@@ -108,9 +110,25 @@ const handleCategoryChange = (category) => {
   loadGoods();
 };
 
-const goToDetail = (id) => {
-  router.push({ path: "/detail", query: { id: id } });
+const changeSort = (value) => {
+  sort.value = value;
+  currentPage.value = 1;
+  loadGoods();
 };
+
+const goToDetail = (id) => {
+  router.push({ path: "/detail", query: { id } });
+};
+
+watch(
+  () => route.query.keyword,
+  (val) => {
+    searchKeyword.value = typeof val === "string" ? val : "";
+    currentPage.value = 1;
+    loadGoods();
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>

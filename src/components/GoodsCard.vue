@@ -6,15 +6,16 @@
     style="cursor: pointer"
     @click="handleClick"
   >
-    <img :src="goods.image" class="goods-image" />
+    <img :src="cover" class="goods-image" />
     <div class="goods-info">
       <h3 class="goods-title">{{ goods.title }}</h3>
       <div class="goods-tags">
         <el-tag size="small" type="info">{{ goods.condition }}</el-tag>
+        <el-tag size="small" type="warning" v-if="categoryLabel">{{ categoryLabel }}</el-tag>
       </div>
       <div class="goods-price">
         <span class="price">¥{{ goods.price }}</span>
-        <span class="original-price">¥{{ goods.originalPrice }}</span>
+        <span class="original-price" v-if="goods.originalPrice">¥{{ goods.originalPrice }}</span>
       </div>
       <div class="goods-footer">
         <span class="location"
@@ -27,7 +28,9 @@
 </template>
 
 <script setup>
+import { computed } from "vue";
 import { Location } from "@element-plus/icons-vue";
+import { coverOf, categoryLabel as catLabel } from "../utils/dict";
 
 // 必须接收一个 goods 对象
 const props = defineProps({
@@ -35,6 +38,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["click-card"]);
+
+const cover = computed(() => coverOf(props.goods.image));
+const categoryLabel = computed(() => catLabel(props.goods.category));
 
 const handleClick = () => {
   emit("click-card", props.goods.id);
@@ -68,6 +74,8 @@ const handleClick = () => {
 }
 .goods-tags {
   margin-bottom: 10px;
+  display: flex;
+  gap: 6px;
 }
 .goods-price {
   display: flex;

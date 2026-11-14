@@ -56,12 +56,14 @@
 
 <script setup>
 import { reactive, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
-import { loginApi, registerApi } from "../api/goods"; // 引入真实的接口
+import { loginApi, registerApi } from "../api/goods";
+import { setUser } from "../utils/auth";
 
 const router = useRouter();
-const isLogin = ref(true); // true表示登录，false表示注册
+const route = useRoute();
+const isLogin = ref(true);
 const loginForm = reactive({ username: "", password: "", nickname: "" });
 
 const handleSubmit = async () => {
@@ -72,28 +74,26 @@ const handleSubmit = async () => {
 
   try {
     if (isLogin.value) {
-      // ========= 登录逻辑 =========
       const res = await loginApi(loginForm);
       if (res.data.code === 200) {
+        setUser(res.data.data);
         ElMessage.success("登录成功！");
-        localStorage.setItem("user", JSON.stringify(res.data.data));
-        router.push("/");
+        const redirect = typeof route.query.redirect === "string" ? route.query.redirect : "/";
+        router.push(redirect);
       } else {
         ElMessage.error(res.data.message || "登录失败");
       }
     } else {
-      // ========= 注册逻辑 =========
       const res = await registerApi(loginForm);
       if (res.data.code === 200) {
         ElMessage.success("注册成功，请直接登录！");
-        isLogin.value = true; // 自动切回登录界面
+        isLogin.value = true;
       } else {
         ElMessage.error(res.data.message || "注册失败");
       }
     }
   } catch (error) {
-    console.error(error);
-    ElMessage.error("网络异常，请检查后端是否启动");
+    ElMessage.error(error?.message || "网络异常，请检查后端是否启动");
   }
 };
 </script>
