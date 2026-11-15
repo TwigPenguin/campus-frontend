@@ -78,6 +78,11 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const user = getUser();
+  if (user && user.status === "封禁") {
+    ElMessage.error("您的账号因违规已被封禁，请联系管理员");
+    logout(); // 强制清除本地登录状态（你需要从 utils/auth 引入 logout）
+    return "/login";
+  }
   const needAuth = to.matched.some((record) => record.meta.auth);
   const needAdmin = to.matched.some((record) => record.meta.admin);
 
