@@ -78,7 +78,8 @@ const handleSubmit = async () => {
       if (res.data.code === 200) {
         setUser(res.data.data);
         ElMessage.success("登录成功！");
-        const redirect = typeof route.query.redirect === "string" ? route.query.redirect : "/";
+        const redirect =
+          typeof route.query.redirect === "string" ? route.query.redirect : "/";
         router.push(redirect);
       } else {
         ElMessage.error(res.data.message || "登录失败");
@@ -118,7 +119,14 @@ const handleSubmit = async () => {
 }
 .login-btn {
   width: 100%;
-  background-color: #3b82f6;
+  background-color: #0071e3;
+  border-radius: 20px; /* 胶囊形状 */
+  font-weight: 500;
+  border: none;
+  transition: background 0.3s;
+}
+.login-btn:hover {
+  background-color: #0077ed;
 }
 .footer-links {
   text-align: center;

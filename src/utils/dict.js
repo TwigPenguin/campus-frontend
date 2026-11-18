@@ -22,7 +22,9 @@ export const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=600&q=80";
 
 export function categoryLabel(value) {
-  return categories.find((item) => item.value === value)?.label || value || "未分类";
+  return (
+    categories.find((item) => item.value === value)?.label || value || "未分类"
+  );
 }
 
 export function locationLabel(value) {

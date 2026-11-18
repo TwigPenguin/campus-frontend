@@ -8,7 +8,7 @@
       <el-menu-item index="all"
         ><el-icon><Menu /></el-icon>全部分类</el-menu-item
       >
-      <el-menu-item index="book"
+      <el-menu-item index="books"
         ><el-icon><Reading /></el-icon>书籍教材</el-menu-item
       >
       <el-menu-item index="digital"

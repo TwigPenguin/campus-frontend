@@ -31,15 +31,24 @@
         <el-dropdown>
           <span class="user-dropdown">
             <el-avatar :size="32" :src="avatar">{{ avatarText }}</el-avatar>
-            <span class="username">{{ userInfo.nickname || userInfo.username }}</span>
+            <span class="username">{{
+              userInfo.nickname || userInfo.username
+            }}</span>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item @click="$router.push('/user')">个人中心</el-dropdown-item>
-              <el-dropdown-item v-if="userInfo.role === 'ADMIN'" @click="$router.push('/admin')">
+              <el-dropdown-item @click="$router.push('/user')"
+                >个人中心</el-dropdown-item
+              >
+              <el-dropdown-item
+                v-if="userInfo.role === 'ADMIN'"
+                @click="$router.push('/admin')"
+              >
                 管理后台
               </el-dropdown-item>
-              <el-dropdown-item divided @click="handleLogout">退出登录</el-dropdown-item>
+              <el-dropdown-item divided @click="handleLogout"
+                >退出登录</el-dropdown-item
+              >
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -69,22 +78,25 @@ const unread = ref(0);
 
 const userInfo = computed(() => getUser());
 const avatarText = computed(() =>
-  userInfo.value ? (userInfo.value.nickname || userInfo.value.username || "?").slice(0, 1) : "?"
+  userInfo.value
+    ? (userInfo.value.nickname || userInfo.value.username || "?").slice(0, 1)
+    : "?",
 );
-const avatar = "https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png";
+const avatar =
+  "https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png";
 
 watch(
   () => route.query.keyword,
   (val) => {
     keyword.value = typeof val === "string" ? val : "";
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(
   () => userInfo.value?.id,
   () => loadUnread(),
-  { immediate: true }
+  { immediate: true },
 );
 
 async function loadUnread() {
@@ -136,10 +148,17 @@ const handleLogout = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  /* 苹果风：半透明白底 + 毛玻璃模糊效果 */
+  background-color: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  /* 去掉厚重的阴影，用极细的底边框代替 */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   padding: 0 40px;
   height: 64px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 .logo {
   display: flex;
@@ -168,5 +187,11 @@ const handleLogout = () => {
 .username {
   font-size: 14px;
   color: #333;
+}
+/* 在 NavBar.vue 底部添加 */
+:deep(.el-button--primary) {
+  border-radius: 20px; /* 让所有主按钮变圆 */
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 113, 227, 0.3);
 }
 </style>

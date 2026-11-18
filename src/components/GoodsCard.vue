@@ -11,11 +11,15 @@
       <h3 class="goods-title">{{ goods.title }}</h3>
       <div class="goods-tags">
         <el-tag size="small" type="info">{{ goods.condition }}</el-tag>
-        <el-tag size="small" type="warning" v-if="categoryLabel">{{ categoryLabel }}</el-tag>
+        <el-tag size="small" type="warning" v-if="categoryLabel">{{
+          categoryLabel
+        }}</el-tag>
       </div>
       <div class="goods-price">
         <span class="price">¥{{ goods.price }}</span>
-        <span class="original-price" v-if="goods.originalPrice">¥{{ goods.originalPrice }}</span>
+        <span class="original-price" v-if="goods.originalPrice"
+          >¥{{ goods.originalPrice }}</span
+        >
       </div>
       <div class="goods-footer">
         <span class="location"
@@ -50,11 +54,17 @@ const handleClick = () => {
 <style scoped>
 .goods-card {
   margin-bottom: 20px;
-  border-radius: 8px;
-  transition: transform 0.3s;
+  border-radius: 16px; /* 更大的圆角，像 iPad 的边框 */
+  border: none !important; /* 强制去掉边框 */
+  background: #ffffff;
+  /* 苹果标志性的微小投影，非常柔和 */
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  overflow: hidden;
 }
 .goods-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px) scale(1.01); /* 鼠标放上去有轻微上浮感 */
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1); /* 阴影加深 */
 }
 .goods-image {
   width: 100%;
